@@ -1,32 +1,28 @@
 // src/api/hotelApi.js
-import { apiRequest } from './client';
+import { BASE_URL, apiRequest } from './client';
 
 export const hotelApi = {
+  getFeatured:     ()       => apiRequest('/hotels/featured'),
+  getPopular:      ()       => apiRequest('/hotels/popular'),
+  getByCategory:   (cat)    => apiRequest(`/hotels/category/${cat}`),
+  search:          (q)      => apiRequest(`/hotels/search?q=${encodeURIComponent(q)}`),
+  getById:         (id)     => apiRequest(`/hotels/${id}`),
+};
 
-  // Get featured hotels (carousel)
-  getFeatured: () =>
-    apiRequest('/hotels/featured', { method: 'GET' }),
+export const bookingApi = {
+  // Create a booking — requires auth token
+  create: (payload, token) =>
+    apiRequest('/bookings', { method: 'POST', body: payload, token }),
 
-  // Get popular hotels
-  getPopular: () =>
-    apiRequest('/hotels/popular', { method: 'GET' }),
+  // Get all bookings for the logged-in user
+  getMyBookings: (token) =>
+    apiRequest('/bookings/my', { token }),
 
-  // Search hotels by query + filters
-  search: (query, filters = {}) =>
-    apiRequest('/hotels/search', {
-      method: 'POST',
-      body: { query, ...filters },
-    }),
+  // Get a single booking
+  getById: (id, token) =>
+    apiRequest(`/bookings/${id}`, { token }),
 
-  // Get hotels by category
-  getByCategory: (category) =>
-    apiRequest(`/hotels/category/${category}`, { method: 'GET' }),
-
-  // Get hotel details by id
-  getById: (id) =>
-    apiRequest(`/hotels/${id}`, { method: 'GET' }),
-
-  // Get special offers
-  getOffers: () =>
-    apiRequest('/hotels/offers', { method: 'GET' }),
+  // Cancel a booking
+  cancel: (id, token) =>
+    apiRequest(`/bookings/${id}/cancel`, { method: 'PATCH', token }),
 };
