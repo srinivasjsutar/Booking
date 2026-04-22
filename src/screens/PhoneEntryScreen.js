@@ -51,7 +51,6 @@ export default function PhoneEntryScreen({ navigation }) {
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.emoji}>📱</Text>
             <Text style={styles.title}>Enter your phone number</Text>
             <Text style={styles.subtitle}>We'll send you a 6-digit OTP to verify your number</Text>
           </View>

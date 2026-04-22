@@ -52,7 +52,7 @@ export default function WelcomeScreen({ navigation }) {
         {/* CTA */}
         <Animated.View style={[styles.ctaBox, { transform: [{ translateY: slideAnim }] }]}>
           <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.navigate('PhoneEntry')} activeOpacity={0.85}>
-            <Text style={styles.primaryBtnText}>Continue with Phone 📱</Text>
+            <Text style={styles.primaryBtnText}>Continue with Phone</Text>
           </TouchableOpacity>
           <Text style={styles.terms}>By continuing you agree to our{' '}
             <Text style={styles.link}>Terms</Text> and <Text style={styles.link}>Privacy Policy</Text>
