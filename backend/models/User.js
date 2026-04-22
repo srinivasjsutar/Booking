@@ -1,3 +1,4 @@
+// backend/models/User.js
 const mongoose = require('mongoose');
 const bcrypt   = require('bcryptjs');
 
@@ -21,21 +22,38 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters'],
-      select: false, // never return password by default
+      select: false,
     },
-    avatar: {
-      type: String,
-      default: '',
+    avatar: { type: String, default: '' },
+    isVerified: { type: Boolean, default: false },
+
+    // ── KYC ──────────────────────────────────────────────────────────────────
+    kyc: {
+      status: {
+        type: String,
+        enum: ['not_started', 'aadhaar_done', 'verified'],
+        default: 'not_started',
+      },
+      aadhaar: {
+        verified:   { type: Boolean, default: false },
+        name:       { type: String,  default: '' },
+        dob:        { type: String,  default: '' },
+        gender:     { type: String,  default: '' },
+        address:    { type: String,  default: '' },
+        verifiedAt: { type: Date },
+      },
+      pan: {
+        verified:   { type: Boolean, default: false },
+        name:       { type: String,  default: '' },
+        number:     { type: String,  default: '' },
+        verifiedAt: { type: Date },
+      },
     },
-    isVerified: {
-      type: Boolean,
-      default: false,
-    },
+    // ─────────────────────────────────────────────────────────────────────────
   },
   { timestamps: true }
 );
 
-// Hash password before saving
 UserSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   const salt = await bcrypt.genSalt(12);
@@ -43,7 +61,6 @@ UserSchema.pre('save', async function (next) {
   next();
 });
 
-// Compare password method
 UserSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

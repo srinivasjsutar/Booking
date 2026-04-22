@@ -1,3 +1,4 @@
+// backend/server.js
 require('dotenv').config();
 const express   = require('express');
 const cors      = require('cors');
@@ -15,8 +16,9 @@ app.use('/api/auth',     require('./routes/auth'));
 app.use('/api/user',     require('./routes/user'));
 app.use('/api/hotels',   require('./routes/hotels'));
 app.use('/api/bookings', require('./routes/bookings'));
+app.use('/api/kyc',      require('./routes/kyc'));      // ← KYC added
 
-// ── Seed route: POST /api/seed  (dev only — seeds mock hotels) ────────────────
+// ── Seed route (dev only) ─────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'production') {
   app.post('/api/seed', async (req, res) => {
     const Hotel = require('./models/Hotel');
@@ -36,7 +38,6 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// ── Health check ──────────────────────────────────────────────────────────────
 app.get('/', (req, res) => res.json({ message: 'Booking API is running ✅' }));
 
 app.use((err, req, res, next) => {
