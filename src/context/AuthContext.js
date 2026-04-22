@@ -1,36 +1,39 @@
 // src/context/AuthContext.js
-import React, { createContext, useContext, useEffect, useState } from "react";
-import * as SecureStore from "expo-secure-store";
-import { loginUser, registerUser, getMe } from "../api/auth";
-import { getKycStatus } from "../api/kycApi";
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { loginUser, registerUser, getMe } from '../api/auth';
 
 const AuthContext = createContext(null);
-const TOKEN_KEY = "auth_token";
+
+const TOKEN_KEY   = 'auth_token';
+const PROFILE_KEY = 'user_profile';
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
+  const [user,    setUser]    = useState(null);
+  const [token,   setToken]   = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ── Restore session on app start ──────────────────────────────────────────
+  // ── On app start: restore session ────────────────────────────────────────────
   useEffect(() => {
     const restoreSession = async () => {
       try {
         const stored = await SecureStore.getItemAsync(TOKEN_KEY);
         if (stored) {
-          const data = await getMe(stored);
-          setToken(stored);
-
-          // Fetch fresh KYC status and merge into user object
-          let kycData = { status: "not_started" };
           try {
-            const kycRes = await getKycStatus(stored);
-            if (kycRes.success) kycData = kycRes.kyc;
-          } catch (_) {
-            /* offline, use default */
+            // Try to fetch fresh user from API
+            const data = await getMe(stored);
+            setToken(stored);
+            setUser(data.user);
+          } catch {
+            // API unreachable — restore from local profile cache
+            const cached = await SecureStore.getItemAsync(PROFILE_KEY);
+            if (cached) {
+              setToken(stored);
+              setUser(JSON.parse(cached));
+            } else {
+              await SecureStore.deleteItemAsync(TOKEN_KEY);
+            }
           }
-
-          setUser({ ...data.user, kyc: kycData });
         }
       } catch {
         await SecureStore.deleteItemAsync(TOKEN_KEY);
@@ -41,55 +44,57 @@ export const AuthProvider = ({ children }) => {
     restoreSession();
   }, []);
 
-  // ── Login ─────────────────────────────────────────────────────────────────
+  // ── Login (email + password) ──────────────────────────────────────────────────
   const login = async (email, password) => {
     const data = await loginUser(email, password);
     await SecureStore.setItemAsync(TOKEN_KEY, data.token);
+    await SecureStore.setItemAsync(PROFILE_KEY, JSON.stringify(data.user));
     setToken(data.token);
-
-    let kycData = { status: "not_started" };
-    try {
-      const kycRes = await getKycStatus(data.token);
-      if (kycRes.success) kycData = kycRes.kyc;
-    } catch (_) {}
-
-    setUser({ ...data.user, kyc: kycData });
+    setUser(data.user);
     return data;
   };
 
-  // ── Register ──────────────────────────────────────────────────────────────
+  // ── Register ──────────────────────────────────────────────────────────────────
   const register = async (name, email, password) => {
     const data = await registerUser(name, email, password);
     await SecureStore.setItemAsync(TOKEN_KEY, data.token);
+    await SecureStore.setItemAsync(PROFILE_KEY, JSON.stringify(data.user));
     setToken(data.token);
-    setUser({ ...data.user, kyc: { status: "not_started" } });
+    setUser(data.user);
     return data;
   };
 
-  // ── Logout ────────────────────────────────────────────────────────────────
+  // ── Complete profile after email OTP verify ───────────────────────────────────
+  // Called from ProfileSetupScreen — sets user in context so RootNavigator
+  // automatically switches from AuthStack → AppStack (no manual navigation.replace needed)
+  const completeProfile = async (profileData) => {
+    const guestUser = {
+      id:    profileData.email || profileData.phone || 'guest',
+      name:  profileData.name,
+      email: profileData.email || `${profileData.phone}@phone.com`,
+      gender: profileData.gender,
+      isVerified: true,
+    };
+
+    // Persist locally so session survives app restart
+    const guestToken = `local_${Date.now()}`;
+    await SecureStore.setItemAsync(TOKEN_KEY,   guestToken);
+    await SecureStore.setItemAsync(PROFILE_KEY, JSON.stringify(guestUser));
+
+    setToken(guestToken);
+    setUser(guestUser);       // ← this triggers RootNavigator to show AppStack
+  };
+
+  // ── Logout ────────────────────────────────────────────────────────────────────
   const logout = async () => {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await SecureStore.deleteItemAsync(PROFILE_KEY);
     setToken(null);
     setUser(null);
   };
 
-  // ── Refresh KYC (call after each KYC step completes) ─────────────────────
-  const refreshKyc = async () => {
-    if (!token) return;
-    try {
-      const kycRes = await getKycStatus(token);
-      if (kycRes.success) {
-        setUser((prev) => ({ ...prev, kyc: kycRes.kyc }));
-      }
-    } catch (err) {
-      console.error("KYC refresh error:", err.message);
-    }
-  };
-
   return (
-    <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout, refreshKyc }}
-    >
+    <AuthContext.Provider value={{ user, token, loading, login, register, completeProfile, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -97,6 +102,6 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
   return ctx;
 };

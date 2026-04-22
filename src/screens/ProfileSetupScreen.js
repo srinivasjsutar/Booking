@@ -1,6 +1,7 @@
 // src/screens/ProfileSetupScreen.js
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, StatusBar, SafeAreaView, ActivityIndicator, ScrollView, Alert } from 'react-native';
+import { useAuth } from '../context/AuthContext';
 
 const CREAM = '#F7F3EE'; const DARK = '#1A1208'; const GOLD = '#C8963E'; const WHITE = '#FFFFFF'; const MUTED = '#8C7E6E';
 
@@ -11,10 +12,13 @@ const GENDERS = [
 ];
 
 export default function ProfileSetupScreen({ navigation, route }) {
-  const { phone } = route.params || {};
-  const [name,    setName]    = useState('');
-  const [gender,  setGender]  = useState('');
-  const [loading, setLoading] = useState(false);
+  const { email, phone } = route.params || {};
+  const { completeProfile } = useAuth();
+
+  const [name,      setName]      = useState('');
+  const [gender,    setGender]    = useState('');
+  const [showKyc,   setShowKyc]   = useState(false);
+  const [loading,   setLoading]   = useState(false);
 
   const isValid = name.trim().length >= 2 && gender !== '';
 
@@ -22,15 +26,68 @@ export default function ProfileSetupScreen({ navigation, route }) {
     if (!isValid) return;
     try {
       setLoading(true);
-      // Save profile — API call would go here
-      // For demo, just navigate to home
-      navigation.replace('Home');
+      // Save profile to backend (optional — extend as needed)
+      // await apiRequest('/user/profile', { method: 'PUT', body: { name, gender }, token });
+
+      // Mark user as logged-in in AuthContext so RootNavigator switches to AppStack
+      await completeProfile({ name: name.trim(), gender, email, phone });
     } catch (err) {
-      Alert.alert('Error', err.message);
+      Alert.alert('Error', err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
   };
+
+  const handleSkip = async () => {
+    try {
+      await completeProfile({ name: 'Guest', gender: 'other', email, phone });
+    } catch {
+      // fallback — just complete
+    }
+  };
+
+  if (showKyc) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <StatusBar barStyle="dark-content" backgroundColor={CREAM} />
+        <View style={styles.kycScreen}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => setShowKyc(false)}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <View style={styles.kycContent}>
+            <Text style={styles.kycEmoji}>🪪</Text>
+            <Text style={styles.kycHeading}>KYC Verification</Text>
+            <Text style={styles.kycSubtext}>
+              Verify your identity with Aadhaar for faster hotel check-in and increased booking limits.
+            </Text>
+
+            <View style={styles.kycStepsList}>
+              {[
+                { icon: '📷', title: 'Upload Aadhaar', desc: 'Front & back photo' },
+                { icon: '🤳', title: 'Face Match',     desc: 'Quick selfie verification' },
+                { icon: '✅', title: 'Instant Verify', desc: 'Done in under 2 minutes' },
+              ].map((s, i) => (
+                <View key={i} style={styles.kycStep}>
+                  <View style={styles.kycStepIcon}><Text style={{ fontSize: 22 }}>{s.icon}</Text></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.kycStepTitle}>{s.title}</Text>
+                    <Text style={styles.kycStepDesc}>{s.desc}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            <TouchableOpacity style={styles.kycStartBtn} activeOpacity={0.85}>
+              <Text style={styles.kycStartBtnText}>Start KYC →</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowKyc(false)} style={{ marginTop: 14 }}>
+              <Text style={styles.skipText}>Do it later</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -63,11 +120,11 @@ export default function ProfileSetupScreen({ navigation, route }) {
           />
         </View>
 
-        {/* Phone (readonly) */}
+        {/* Email or Phone (readonly) */}
         <View style={styles.field}>
-          <Text style={styles.label}>Phone Number</Text>
+          <Text style={styles.label}>{email ? 'Email Address' : 'Phone Number'}</Text>
           <View style={styles.readonlyInput}>
-            <Text style={styles.readonlyText}>+91 {phone}</Text>
+            <Text style={styles.readonlyText}>{email || `+91 ${phone}`}</Text>
             <Text style={styles.verifiedBadge}>✓ Verified</Text>
           </View>
         </View>
@@ -89,8 +146,8 @@ export default function ProfileSetupScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* KYC CTA */}
-        <TouchableOpacity style={styles.kycBanner} activeOpacity={0.85}>
+        {/* KYC CTA — now navigates to KYC view */}
+        <TouchableOpacity style={styles.kycBanner} onPress={() => setShowKyc(true)} activeOpacity={0.85}>
           <View style={styles.kycLeft}>
             <Text style={styles.kycTitle}>🪪  Complete KYC</Text>
             <Text style={styles.kycDesc}>Verify with Aadhaar for faster check-in</Text>
@@ -98,7 +155,7 @@ export default function ProfileSetupScreen({ navigation, route }) {
           <Text style={styles.kycArrow}>→</Text>
         </TouchableOpacity>
 
-        {/* Button */}
+        {/* Continue Button */}
         <TouchableOpacity
           style={[styles.continueBtn, !isValid && styles.continueBtnDisabled]}
           onPress={handleContinue}
@@ -111,7 +168,7 @@ export default function ProfileSetupScreen({ navigation, route }) {
           }
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.skipBtn} onPress={() => navigation.replace('Home')}>
+        <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
           <Text style={styles.skipText}>Skip for now</Text>
         </TouchableOpacity>
 
@@ -153,4 +210,20 @@ const styles = StyleSheet.create({
   continueBtnText: { color: WHITE, fontSize: 17, fontWeight: '800' },
   skipBtn:     { alignItems: 'center' },
   skipText:    { fontSize: 14, color: MUTED, textDecorationLine: 'underline' },
+
+  // KYC screen styles
+  kycScreen:   { flex: 1, backgroundColor: CREAM, paddingHorizontal: 28, paddingTop: 50 },
+  backBtn:     { width: 40, height: 40, borderRadius: 12, backgroundColor: WHITE, alignItems: 'center', justifyContent: 'center', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  backIcon:    { fontSize: 20, color: DARK },
+  kycContent:  { alignItems: 'center', flex: 1 },
+  kycEmoji:    { fontSize: 64, marginBottom: 16 },
+  kycHeading:  { fontSize: 26, fontWeight: '900', color: DARK, marginBottom: 10 },
+  kycSubtext:  { fontSize: 14, color: MUTED, textAlign: 'center', lineHeight: 21, marginBottom: 32, paddingHorizontal: 8 },
+  kycStepsList:{ width: '100%', gap: 16, marginBottom: 36 },
+  kycStep:     { flexDirection: 'row', alignItems: 'center', backgroundColor: WHITE, borderRadius: 14, padding: 16, gap: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  kycStepIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#FFF4E0', alignItems: 'center', justifyContent: 'center' },
+  kycStepTitle:{ fontSize: 14, fontWeight: '700', color: DARK, marginBottom: 2 },
+  kycStepDesc: { fontSize: 12, color: MUTED },
+  kycStartBtn: { backgroundColor: DARK, borderRadius: 18, paddingVertical: 18, alignItems: 'center', width: '100%' },
+  kycStartBtnText: { color: WHITE, fontSize: 16, fontWeight: '800' },
 });
