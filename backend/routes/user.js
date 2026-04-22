@@ -1,6 +1,6 @@
 const express  = require('express');
 const router   = express.Router();
-const { protect } = require('../middleware/auth');
+const protect = require('../middleware/auth');
 const User     = require('../models/User');
 
 // ── GET /api/user/me — get logged-in user profile ────────────────────────────

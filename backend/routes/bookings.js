@@ -3,7 +3,7 @@ const router  = express.Router();
 const { body, validationResult } = require('express-validator');
 const Booking = require('../models/Booking');
 const Hotel   = require('../models/Hotel');
-const auth    = require('../middleware/auth');
+const auth = require('../middleware/auth');
 
 // ── POST /api/bookings  — Create a booking ────────────────────────────────────
 router.post(

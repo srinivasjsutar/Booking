@@ -1,55 +1,74 @@
 const express = require('express');
 const router  = express.Router();
 const Hotel   = require('../models/Hotel');
-const auth    = require('../middleware/auth');
 
-// ── GET /api/hotels/featured ──────────────────────────────────────────────────
+// GET /api/hotels/featured
 router.get('/featured', async (req, res) => {
   try {
-    const hotels = await Hotel.find({ isFeatured: true }).limit(10).sort({ rating: -1 });
+    const hotels = await Hotel.find({ featured: true }).limit(10).sort({ rating: -1 });
     res.json({ success: true, hotels });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
-// ── GET /api/hotels/popular ───────────────────────────────────────────────────
+// GET /api/hotels/popular
 router.get('/popular', async (req, res) => {
   try {
-    const hotels = await Hotel.find().sort({ reviews: -1, rating: -1 }).limit(20);
+    const hotels = await Hotel.find({ featured: false }).sort({ rating: -1 }).limit(20);
     res.json({ success: true, hotels });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
-// ── GET /api/hotels/category/:cat ─────────────────────────────────────────────
-router.get('/category/:cat', async (req, res) => {
+// GET /api/hotels/offers
+router.get('/offers', async (req, res) => {
   try {
-    const hotels = await Hotel.find({ category: req.params.cat })
-      .sort({ rating: -1 }).limit(20);
-    res.json({ success: true, hotels });
+    const offers = [
+      { id: '1', title: 'Weekend Getaway', discount: 30, description: 'Up to 30% off Weekend Stays', validTill: '2025-06-30' },
+      { id: '2', title: 'Early Bird',      discount: 20, description: '20% off on advance bookings',  validTill: '2025-07-15' },
+    ];
+    res.json({ success: true, offers });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
-// ── GET /api/hotels/search?q=text ─────────────────────────────────────────────
-router.get('/search', async (req, res) => {
+// GET /api/hotels/category/:category
+router.get('/category/:category', async (req, res) => {
   try {
-    const { q } = req.query;
-    if (!q) return res.json({ success: true, hotels: [] });
-    const regex = new RegExp(q, 'i');
-    const hotels = await Hotel.find({
-      $or: [{ name: regex }, { location: regex }, { category: regex }],
-    }).limit(20);
+    const { category } = req.params;
+    const query = category === 'all' ? {} : { category };
+    const hotels = await Hotel.find(query).sort({ rating: -1 }).limit(20);
     res.json({ success: true, hotels });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
-// ── GET /api/hotels/:id ───────────────────────────────────────────────────────
+// POST /api/hotels/search  ← frontend sends POST with body
+router.post('/search', async (req, res) => {
+  try {
+    const { query = '', minPrice, maxPrice, minRating, category } = req.body;
+    const filter = {
+      $or: [
+        { name:     { $regex: query, $options: 'i' } },
+        { location: { $regex: query, $options: 'i' } },
+      ],
+    };
+    if (minPrice) filter.pricePerNight = { $gte: minPrice };
+    if (maxPrice) filter.pricePerNight = { ...filter.pricePerNight, $lte: maxPrice };
+    if (minRating) filter.rating = { $gte: minRating };
+    if (category && category !== 'all') filter.category = category;
+    const hotels = await Hotel.find(filter).sort({ rating: -1 });
+    res.json({ success: true, hotels, total: hotels.length });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// GET /api/hotels/:id
 router.get('/:id', async (req, res) => {
   try {
     const hotel = await Hotel.findById(req.params.id);
@@ -57,16 +76,6 @@ router.get('/:id', async (req, res) => {
     res.json({ success: true, hotel });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-// ── POST /api/hotels  (admin seed — protected) ────────────────────────────────
-router.post('/', auth, async (req, res) => {
-  try {
-    const hotel = await Hotel.create(req.body);
-    res.status(201).json({ success: true, hotel });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
   }
 });
 

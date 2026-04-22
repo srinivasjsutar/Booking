@@ -60,9 +60,9 @@ router.post('/search', async (req, res) => {
       ],
     };
 
-    if (minPrice)                    filter.pricePerNight = { ...filter.pricePerNight, $gte: minPrice };
-    if (maxPrice)                    filter.pricePerNight = { ...filter.pricePerNight, $lte: maxPrice };
-    if (minRating)                   filter.rating        = { $gte: minRating };
+    if (minPrice) filter.pricePerNight = { ...filter.pricePerNight, $gte: minPrice };
+    if (maxPrice) filter.pricePerNight = { ...filter.pricePerNight, $lte: maxPrice };
+    if (minRating) filter.rating = { $gte: minRating };
     if (category && category !== 'all') filter.category   = category;
 
     const hotels = await Hotel.find(filter).sort({ rating: -1 });
