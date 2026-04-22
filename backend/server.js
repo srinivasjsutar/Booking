@@ -2,6 +2,7 @@ require('dotenv').config();
 const express  = require('express');
 const cors     = require('cors');
 const connectDB = require('./config/db');
+const hotelRoutes = require('./routes/hotels'); // 👈 add this
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/user'));
+app.use('/api/hotels', hotelRoutes); // 👈 add this
 
 // Health check
 app.get('/', (req, res) => res.json({ message: 'Android Demo API is running ✅' }));

@@ -1,0 +1,66 @@
+# Node modules
+node_modules/
+
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# React Native / Metro
+.metro-health-check*
+.expo/*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+android/build/
+android/app/build/
+ios/build/
+
+# iOS
+ios/Pods/
+ios/*.xcworkspace
+ios/*.xcuserdata
+ios/DerivedData/
+
+# Android
+android/.gradle/
+android/local.properties
+android/app/*.keystore
+android/app/debug.keystore
+
+# Environment variables
+.env
+.env.*
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Coverage
+coverage/
+
+# TypeScript (if any)
+*.tsbuildinfo
+
+# VS Code
+.vscode/
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+
+# Expo specific
+.expo-settings.json
+
+# Misc
+*.swp
+*.lock

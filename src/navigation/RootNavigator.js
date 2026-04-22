@@ -4,42 +4,34 @@ import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { useAuth } from '../context/AuthContext';
-import LoginScreen    from '../screens/LoginScreen';
+import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
-import HomeScreen     from '../screens/HomeScreen';
-import SplashScreen   from '../screens/SplashScreen';
+import HomeScreen from '../screens/HomeScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import HotelBookingHomeScreen from '../Hotelbookinghomescreen';
 
 const Stack = createNativeStackNavigator();
 
-// ── Auth stack (unauthenticated) ──────────────────────────────────────────────
 const AuthStack = () => (
   <Stack.Navigator
     initialRouteName="Login"
-    screenOptions={{
-      headerShown: false,
-      animation: 'slide_from_right',
-    }}
+    screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
   >
-    <Stack.Screen name="Login"          component={LoginScreen} />
-    <Stack.Screen name="Register"       component={RegisterScreen} />
+    <Stack.Screen name="Login" component={LoginScreen} />
+    <Stack.Screen name="Register" component={RegisterScreen} />
     <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
   </Stack.Navigator>
 );
 
-// ── App stack (authenticated) ─────────────────────────────────────────────────
 const AppStack = () => (
   <Stack.Navigator
-    screenOptions={{
-      headerShown: false,
-      animation: 'fade',
-    }}
+    screenOptions={{ headerShown: false, animation: 'fade' }}
   >
-    <Stack.Screen name="Home" component={HomeScreen} />
+    <Stack.Screen name="Home" component={HotelBookingHomeScreen} />
+    <Stack.Screen name="OldHome" component={HomeScreen} />
   </Stack.Navigator>
 );
 
-// ── Root: decides which stack to show based on auth state ─────────────────────
 const RootNavigator = () => {
   const { user, loading } = useAuth();
 
