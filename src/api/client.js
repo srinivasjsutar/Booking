@@ -1,5 +1,5 @@
 // src/api/client.js
-export const BASE_URL = 'http://192.168.0.113:5000/api';
+export const BASE_URL = 'https://booking-fsbh.onrender.com/api';
 
 export const apiRequest = async (endpoint, { method = 'GET', body, token } = {}) => {
   const headers = { 'Content-Type': 'application/json' };
