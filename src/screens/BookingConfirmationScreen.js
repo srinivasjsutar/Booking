@@ -168,7 +168,7 @@ export default function BookingConfirmationScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: CREAM },
 
-  successBanner: { backgroundColor: DARK, margin: 16, borderRadius: 24, padding: 24, alignItems: 'center' },
+  successBanner: { backgroundColor: DARK,marginTop:50, margin: 16, borderRadius: 24, padding: 24, alignItems: 'center' },
   checkCircle:   { width: 64, height: 64, borderRadius: 32, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   checkMark:     { color: WHITE, fontSize: 30, fontWeight: '800' },
   successTitle:  { fontSize: 22, fontWeight: '800', color: WHITE, marginBottom: 6 },

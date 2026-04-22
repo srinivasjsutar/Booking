@@ -24,7 +24,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.sjsjasss.androiddemo"
+      "package": "com.shashibilgundi.androiddemo"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,7 +34,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "f3e20e3a-485d-4021-9fd2-e0cdfc9d2dbf"
+        "projectId": "1c56fe85-926e-4639-9122-a7ac0d11cf29"
       }
     }
   }

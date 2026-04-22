@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: CREAM },
   scroll: { flex: 1, backgroundColor: CREAM },
 
-  header:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 },
+  header:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 50, paddingBottom: 16 },
   greeting:    { fontSize: 13, color: MUTED, fontWeight: '500', marginBottom: 2 },
   headerTitle: { fontSize: 22, fontWeight: '800', color: DARK, letterSpacing: -0.5 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },

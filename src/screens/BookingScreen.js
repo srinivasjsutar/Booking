@@ -448,7 +448,7 @@ export default function BookingScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: CREAM },
 
-  topBar:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 20 },
+  topBar:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 50 },
   backBtn:    { width: 40, height: 40, borderRadius: 12, backgroundColor: WHITE, alignItems: 'center', justifyContent: 'center' },
   backArrow:  { fontSize: 20, color: DARK },
   topTitle:   { fontSize: 18, fontWeight: '800', color: DARK },
