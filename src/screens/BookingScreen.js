@@ -180,7 +180,7 @@ const nightsBetween = (a, b) => {
 // ── Main Booking Screen ────────────────────────────────────────────────────────
 export default function BookingScreen({ route, navigation }) {
   const { hotel } = route.params || {};
-  const { user, token } = useAuth();
+  const { user, token, isAuthenticated } = useAuth();
 
   const today    = new Date(); today.setHours(0,0,0,0);
   const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
@@ -206,6 +206,20 @@ export default function BookingScreen({ route, navigation }) {
   const total       = subtotal + taxes;
 
   const handleBook = async () => {
+    // ✅ FIX: Guest tokens are rejected by the server with 401.
+    // Prompt the user to log in before attempting the booking API call.
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Login Required',
+        'Please log in or create an account to complete your booking.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Log In', onPress: () => navigation.navigate('Login') },
+        ]
+      );
+      return;
+    }
+
     if (!guestName.trim())  return Alert.alert('Missing Info', 'Please enter guest name');
     if (!guestEmail.trim()) return Alert.alert('Missing Info', 'Please enter guest email');
     if (nights < 1)         return Alert.alert('Invalid Dates', 'Check-out must be after check-in');
@@ -259,7 +273,6 @@ export default function BookingScreen({ route, navigation }) {
             minDate={today}
             onSelect={(d) => {
               setCheckIn(d);
-              // Auto-advance checkout if needed
               if (checkOut <= d) {
                 const next = new Date(d); next.setDate(d.getDate() + 1);
                 setCheckOut(next);
@@ -306,6 +319,16 @@ export default function BookingScreen({ route, navigation }) {
             <View style={{ width: 40 }} />
           </View>
 
+          {/* ✅ Login prompt banner for guest users */}
+          {!isAuthenticated && (
+            <View style={styles.authBanner}>
+              <Text style={styles.authBannerText}>🔐 Log in to confirm your booking</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.authBannerLink}>Log In →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* ── Hotel Summary ── */}
           <View style={styles.hotelCard}>
             <Image source={{ uri: hotel.image }} style={styles.hotelImg} resizeMode="cover" />
@@ -342,7 +365,6 @@ export default function BookingScreen({ route, navigation }) {
             <Text style={styles.editText}>Edit ›</Text>
           </TouchableOpacity>
 
-          {/* ── Duration Badge ── */}
           {nights > 0 && (
             <View style={styles.nightsBadge}>
               <Text style={styles.nightsText}>🌙 {nights} Night{nights !== 1 ? 's' : ''} Stay</Text>
@@ -436,7 +458,9 @@ export default function BookingScreen({ route, navigation }) {
         >
           {loading
             ? <ActivityIndicator color={WHITE} />
-            : <Text style={styles.confirmBtnText}>Confirm Booking</Text>
+            : <Text style={styles.confirmBtnText}>
+                {isAuthenticated ? 'Confirm Booking' : 'Log In to Book'}
+              </Text>
           }
         </TouchableOpacity>
       </View>
@@ -452,6 +476,11 @@ const styles = StyleSheet.create({
   backBtn:    { width: 40, height: 40, borderRadius: 12, backgroundColor: WHITE, alignItems: 'center', justifyContent: 'center' },
   backArrow:  { fontSize: 20, color: DARK },
   topTitle:   { fontSize: 18, fontWeight: '800', color: DARK },
+
+  // ✅ New: auth banner
+  authBanner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FEF3C7', marginHorizontal: 16, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginBottom: 8, borderWidth: 1, borderColor: '#FDE68A' },
+  authBannerText: { fontSize: 13, color: '#92400E', flex: 1 },
+  authBannerLink: { fontSize: 13, color: '#92400E', fontWeight: '700', textDecorationLine: 'underline' },
 
   hotelCard:  { flexDirection: 'row', backgroundColor: WHITE, marginHorizontal: 16, borderRadius: 16, overflow: 'hidden', marginBottom: 20, elevation: 2 },
   hotelImg:   { width: 110, height: 120 },
