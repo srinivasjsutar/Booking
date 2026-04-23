@@ -32,7 +32,9 @@ const LoginScreen = ({ navigation }) => {
     try {
       // Try real backend login
       await login(email.trim().toLowerCase(), password);
-      // RootNavigator auto-switches to AppStack when user is set in context
+      // Pop back to wherever the user came from (e.g. ProfileScreen in AppStack).
+      // If in AuthStack, RootNavigator auto-switches — popToTop() throws and is caught.
+      try { navigation.popToTop(); } catch { /* AuthStack handles via RootNavigator */ }
     } catch (err) {
       // If backend is unreachable (HTML response / network error), offer demo login
       const isNetworkError = err.message?.includes('<') || err.message?.includes('network') || err.message?.includes('fetch');

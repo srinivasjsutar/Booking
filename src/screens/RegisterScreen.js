@@ -37,7 +37,8 @@ const RegisterScreen = ({ navigation }) => {
     setLoading(true);
     try {
       await register(name.trim(), email.trim().toLowerCase(), password);
-      // Navigation handled automatically by auth state change in RootNavigator
+      // Pop back when in AppStack; RootNavigator handles AuthStack auto-switch.
+      try { navigation.popToTop(); } catch { /* AuthStack handles via RootNavigator */ }
     } catch (err) {
       Alert.alert('Registration Failed', err.message);
     } finally {
