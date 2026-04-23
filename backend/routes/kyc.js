@@ -42,6 +42,16 @@ router.post('/aadhaar/generate-otp', protect, async (req, res) => {
     return res.status(400).json({ success: false, message: 'Enter a valid 12-digit Aadhaar number' });
   }
 
+  // ✅ MOCK MODE: Skip Sandbox API call (no credits needed for development).
+  // Any 12-digit Aadhaar works. Use OTP "123456" to verify.
+  if (process.env.KYC_MOCK === 'true') {
+    return res.json({
+      success: true,
+      referenceId: 'mock_ref_' + aadhaarNumber,
+      message: 'OTP sent to Aadhaar-linked mobile (mock)',
+    });
+  }
+
   try {
     const token = await getToken();
     const response = await axios.post(
@@ -74,6 +84,24 @@ router.post('/aadhaar/verify-otp', protect, async (req, res) => {
 
   if (!referenceId || !otp) {
     return res.status(400).json({ success: false, message: 'referenceId and OTP are required' });
+  }
+
+  // ✅ MOCK MODE: Accept OTP "123456" for any referenceId
+  if (process.env.KYC_MOCK === 'true') {
+    if (otp !== '123456') {
+      return res.status(422).json({ success: false, message: 'Invalid OTP. Use 123456 in mock mode.' });
+    }
+    const aadhaarNumber = referenceId.replace('mock_ref_', '');
+    await User.findByIdAndUpdate(req.user._id, {
+      'kyc.aadhaar.verified':   true,
+      'kyc.aadhaar.name':       req.user.name || 'Mock User',
+      'kyc.aadhaar.dob':        '01/01/1990',
+      'kyc.aadhaar.gender':     'M',
+      'kyc.aadhaar.address':    'Mock Address, Bengaluru, Karnataka, 560001',
+      'kyc.aadhaar.verifiedAt': new Date(),
+      'kyc.status':             'aadhaar_done',
+    });
+    return res.json({ success: true, message: 'Aadhaar verified (mock)', name: req.user.name || 'Mock User', dob: '01/01/1990' });
   }
 
   try {
@@ -130,6 +158,18 @@ router.post('/pan/verify', protect, async (req, res) => {
   }
   if (!dateOfBirth || !/^\d{2}\/\d{2}\/\d{4}$/.test(dateOfBirth)) {
     return res.status(400).json({ success: false, message: 'Date of birth required as DD/MM/YYYY' });
+  }
+
+  // ✅ MOCK MODE: Any valid PAN format is accepted
+  if (process.env.KYC_MOCK === 'true') {
+    await User.findByIdAndUpdate(req.user._id, {
+      'kyc.pan.verified':   true,
+      'kyc.pan.name':       nameAsPerPan.trim().toUpperCase(),
+      'kyc.pan.number':     panNumber.toUpperCase(),
+      'kyc.pan.verifiedAt': new Date(),
+      'kyc.status':         'verified',
+    });
+    return res.json({ success: true, message: 'PAN verified successfully (mock)' });
   }
 
   try {
