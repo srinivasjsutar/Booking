@@ -48,7 +48,7 @@ export default function ProfileScreen({ navigation }) {
         </View>
 
         {/* KYC Status */}
-        <TouchableOpacity style={styles.kycCard} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.kycCard} activeOpacity={0.85} onPress={() => navigation.navigate('KycAadhaar')}>
           <View style={styles.kycLeft}>
             <Text style={styles.kycIcon}>🪪</Text>
             <View>
