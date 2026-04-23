@@ -37,23 +37,24 @@ const AuthStack = () => (
     initialRouteName="Welcome"
     screenOptions={{ headerShown: false, animation: "slide_from_right" }}
   >
-    <Stack.Screen name="Welcome" component={WelcomeScreen} />
-    <Stack.Screen name="PhoneEntry" component={PhoneEntryScreen} />
-    <Stack.Screen name="OTPVerify" component={OTPVerifyScreen} />
-    <Stack.Screen name="Login" component={LoginScreen} />
-    <Stack.Screen name="Register" component={RegisterScreen} />
+    <Stack.Screen name="Welcome"        component={WelcomeScreen} />
+    <Stack.Screen name="PhoneEntry"     component={PhoneEntryScreen} />
+    <Stack.Screen name="OTPVerify"      component={OTPVerifyScreen} />
+    <Stack.Screen name="Login"          component={LoginScreen} />
+    <Stack.Screen name="Register"       component={RegisterScreen} />
     <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-    <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+    <Stack.Screen name="ProfileSetup"   component={ProfileSetupScreen} />
   </Stack.Navigator>
 );
 
-// Shown after login/register when KYC is not yet completed
+// Shown only when user is logged in AND kyc.status is explicitly 'not_started'
+// or 'aadhaar_done' — i.e. KYC is in progress but not complete.
 const KycStack = () => (
   <Stack.Navigator
     screenOptions={{ headerShown: false, animation: "slide_from_right" }}
   >
     <Stack.Screen name="KycAadhaar" component={KycAadhaarScreen} />
-    <Stack.Screen name="KycPan" component={KycPanScreen} />
+    <Stack.Screen name="KycPan"     component={KycPanScreen} />
     <Stack.Screen name="KycSuccess" component={KycSuccessScreen} />
   </Stack.Navigator>
 );
@@ -62,20 +63,22 @@ const AppStack = () => (
   <Stack.Navigator
     screenOptions={{ headerShown: false, animation: "slide_from_right" }}
   >
-    <Stack.Screen name="Home" component={HotelBookingHomeScreen} />
-    <Stack.Screen name="Booking" component={BookingScreen} />
-    <Stack.Screen
-      name="BookingConfirmation"
-      component={BookingConfirmationScreen}
-    />
-    <Stack.Screen name="ActiveSession" component={ActiveSessionScreen} />
-    <Stack.Screen name="CheckOut" component={CheckOutScreen} />
-    <Stack.Screen name="RateReview" component={RateReviewScreen} />
-    <Stack.Screen name="MyBookings" component={MyBookingsScreen} />
-    <Stack.Screen name="Profile" component={ProfileScreen} />
-    <Stack.Screen name="Wallet" component={WalletScreen} />
-    <Stack.Screen name="Support" component={SupportScreen} />
-    <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+    <Stack.Screen name="Home"                component={HotelBookingHomeScreen} />
+    <Stack.Screen name="Booking"             component={BookingScreen} />
+    <Stack.Screen name="BookingConfirmation" component={BookingConfirmationScreen} />
+    <Stack.Screen name="ActiveSession"       component={ActiveSessionScreen} />
+    <Stack.Screen name="CheckOut"            component={CheckOutScreen} />
+    <Stack.Screen name="RateReview"          component={RateReviewScreen} />
+    <Stack.Screen name="MyBookings"          component={MyBookingsScreen} />
+    <Stack.Screen name="Profile"             component={ProfileScreen} />
+    <Stack.Screen name="Wallet"              component={WalletScreen} />
+    <Stack.Screen name="Support"             component={SupportScreen} />
+    <Stack.Screen name="ProfileSetup"        component={ProfileSetupScreen} />
+    {/* ✅ KYC screens also available inside AppStack so users can complete
+        KYC optionally from the Profile screen without being force-routed */}
+    <Stack.Screen name="KycAadhaar"          component={KycAadhaarScreen} />
+    <Stack.Screen name="KycPan"              component={KycPanScreen} />
+    <Stack.Screen name="KycSuccess"          component={KycSuccessScreen} />
   </Stack.Navigator>
 );
 
@@ -90,8 +93,25 @@ const RootNavigator = () => {
     );
   }
 
+  // Not logged in at all → show auth flow
   if (!user) return <AuthStack />;
-  if (user.kyc?.status !== "verified") return <KycStack />;
+
+  // ✅ FIX: The old check was `user.kyc?.status !== "verified"` which is TRUE
+  // even when kyc is undefined (guest users, or login response missing kyc).
+  // This trapped ALL users in KycStack forever.
+  //
+  // Correct logic:
+  //  - Guest users (isGuest: true) → skip KYC, go straight to app
+  //  - Real users with kyc.status explicitly 'not_started' → show KYC flow
+  //  - Real users with kyc.status 'aadhaar_done' → resume KYC from step 2
+  //  - Everyone else (verified, undefined, missing) → go to app
+  if (
+    !user.isGuest &&
+    (user.kyc?.status === 'not_started' || user.kyc?.status === 'aadhaar_done')
+  ) {
+    return <KycStack />;
+  }
+
   return <AppStack />;
 };
 

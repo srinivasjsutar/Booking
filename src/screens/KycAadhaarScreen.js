@@ -48,14 +48,16 @@ export default function KycAadhaarScreen({ navigation }) {
     }, 1000);
   };
 
-  // ✅ FIX: Guard all protected API calls — guest tokens are rejected by the server
+  // Guest users (phone OTP flow) have a local_ token the server rejects.
+  // Navigate them to Login — which now exists inside KycStack (see RootNavigator fix).
   const checkAuth = () => {
     if (!isAuthenticated) {
       Alert.alert(
         "Login Required",
-        "KYC verification requires a full account. Please log in with your email and password.",
+        "KYC verification requires a full account login. Please sign in with your email and password.",
         [
           { text: "Cancel", style: "cancel" },
+          // ✅ FIXED: 'Login' is now registered inside KycStack so this works
           { text: "Log In", onPress: () => navigation.navigate("Login") },
         ],
       );
@@ -65,8 +67,7 @@ export default function KycAadhaarScreen({ navigation }) {
   };
 
   const handleSendOtp = async () => {
-    if (!checkAuth()) return; // ✅ block guest users
-
+    if (!checkAuth()) return;
     const raw = aadhaar.replace(/\s/g, "");
     if (raw.length !== 12)
       return Alert.alert("Invalid", "Enter a valid 12-digit Aadhaar number.");
@@ -88,8 +89,7 @@ export default function KycAadhaarScreen({ navigation }) {
   };
 
   const handleVerifyOtp = async () => {
-    if (!checkAuth()) return; // ✅ block guest users
-
+    if (!checkAuth()) return;
     if (otp.length !== 6)
       return Alert.alert("Invalid OTP", "Enter the 6-digit OTP.");
     setLoading(true);
@@ -136,12 +136,12 @@ export default function KycAadhaarScreen({ navigation }) {
           OTP will be sent to your Aadhaar-linked mobile
         </Text>
 
-        {/* ✅ Show a warning banner for guest users */}
+        {/* Warning banner for guest/phone-OTP users */}
         {!isAuthenticated && (
           <View style={styles.authWarning}>
             <Text style={styles.authWarningText}>
-              ⚠️ KYC requires a full login. Please log in with email & password
-              first.
+              ⚠️ KYC requires a full account. Please log in with email &
+              password to continue.
             </Text>
             <TouchableOpacity onPress={() => navigation.navigate("Login")}>
               <Text style={styles.authWarningLink}>Log In →</Text>
@@ -294,7 +294,6 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   sub2: { fontSize: 13, color: "#6B7280", marginBottom: 16 },
-  // ✅ New: auth warning banner
   authWarning: {
     backgroundColor: "#FEF3C7",
     borderRadius: 12,
