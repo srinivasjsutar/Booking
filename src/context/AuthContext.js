@@ -1,6 +1,6 @@
 // src/context/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { loginUser, registerUser, getMe } from '../api/auth';
 import { getKycStatus } from '../api/kycApi';
 
@@ -15,35 +15,20 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser]       = useState(null);
   const [token, setToken]     = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // ✅ false — no session restore on launch
 
-  // ── Restore session on app launch ─────────────────────────────────────────
-  useEffect(() => {
-    (async () => {
-      try {
-        const storedToken = await AsyncStorage.getItem('token');
-        if (storedToken) {
-          const me = await getMe(storedToken);
-          setUser(me.user ?? me);
-          setToken(storedToken);
-        }
-      } catch {
-        // Token expired or invalid — start fresh
-        await AsyncStorage.removeItem('token');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  // ✅ FIX: Do NOT restore session on app launch.
+  // Every QR scan / app restart begins fresh from the Welcome screen.
+  // (Previously this useEffect called SecureStore.getItemAsync('token')
+  //  which resumed the old session automatically.)
 
-  // ── isAuthenticated: true only for real email/password users ──────────────
   const isAuthenticated = !!user && !user.isGuest;
 
   // ── Login ──────────────────────────────────────────────────────────────────
   const login = async (email, password) => {
     const res = await loginUser(email, password);
     const { token: tok, user: u } = res;
-    await AsyncStorage.setItem('token', tok);
+    await SecureStore.setItemAsync('token', tok);
     setToken(tok);
     setUser(u);
     return u;
@@ -53,13 +38,13 @@ export const AuthProvider = ({ children }) => {
   const register = async (name, email, password) => {
     const res = await registerUser(name, email, password);
     const { token: tok, user: u } = res;
-    await AsyncStorage.setItem('token', tok);
+    await SecureStore.setItemAsync('token', tok);
     setToken(tok);
     setUser(u);
     return u;
   };
 
-  // ── Complete profile (after phone OTP signup) ──────────────────────────────
+  // ── Complete profile (phone OTP / guest flow) ──────────────────────────────
   const completeProfile = async (profileData) => {
     const updated = { ...(user || {}), ...profileData };
     setUser(updated);
@@ -75,13 +60,13 @@ export const AuthProvider = ({ children }) => {
         kyc: res.kyc ?? prev?.kyc,
       }));
     } catch {
-      // Silently ignore — KYC status stays as-is
+      // Silently ignore
     }
   };
 
   // ── Logout ─────────────────────────────────────────────────────────────────
   const logout = async () => {
-    await AsyncStorage.removeItem('token');
+    await SecureStore.deleteItemAsync('token');
     setToken(null);
     setUser(null);
   };
