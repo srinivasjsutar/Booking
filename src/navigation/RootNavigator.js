@@ -79,6 +79,9 @@ const AppStack = () => (
     <Stack.Screen name="KycAadhaar"          component={KycAadhaarScreen} />
     <Stack.Screen name="KycPan"              component={KycPanScreen} />
     <Stack.Screen name="KycSuccess"          component={KycSuccessScreen} />
+    {/* ✅ Allow guest users in AppStack to navigate to auth screens */}
+    <Stack.Screen name="Login"               component={LoginScreen} />
+    <Stack.Screen name="Register"            component={RegisterScreen} />
   </Stack.Navigator>
 );
 

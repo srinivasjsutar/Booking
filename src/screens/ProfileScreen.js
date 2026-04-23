@@ -19,7 +19,7 @@ const MenuItem = ({ icon, label, sub, onPress, danger, arrow = true }) => (
 );
 
 export default function ProfileScreen({ navigation }) {
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
 
   const handleLogout = () => {
     Alert.alert('Sign Out', 'Are you sure?', [
@@ -48,7 +48,25 @@ export default function ProfileScreen({ navigation }) {
         </View>
 
         {/* KYC Status */}
-        <TouchableOpacity style={styles.kycCard} activeOpacity={0.85} onPress={() => navigation.navigate('KycAadhaar')}>
+        <TouchableOpacity
+          style={styles.kycCard}
+          activeOpacity={0.85}
+          onPress={() => {
+            if (!isAuthenticated) {
+              Alert.alert(
+                'Account Required',
+                'KYC verification requires a registered account. Please log in or register with email and password.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Register', onPress: () => navigation.navigate('Register') },
+                  { text: 'Log In', onPress: () => navigation.navigate('Login') },
+                ]
+              );
+              return;
+            }
+            navigation.navigate('KycAadhaar');
+          }}
+        >
           <View style={styles.kycLeft}>
             <Text style={styles.kycIcon}>🪪</Text>
             <View>

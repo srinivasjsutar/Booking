@@ -28,7 +28,7 @@ const GENDERS = [
 
 export default function ProfileSetupScreen({ navigation, route }) {
   const { email, phone } = route.params || {};
-  const { completeProfile } = useAuth();
+  const { completeProfile, user } = useAuth();
 
   const [name, setName] = useState("");
   const [gender, setGender] = useState("");
@@ -107,11 +107,40 @@ export default function ProfileSetupScreen({ navigation, route }) {
               ))}
             </View>
 
-            {/* ✅ FIX: onPress now actually navigates to KycAadhaar screen */}
+            {/* ✅ FIX: Phone-OTP/guest users have no token → show Register prompt.
+                Email-registered users → complete profile then navigate to KycAadhaar. */}
             <TouchableOpacity
               style={styles.kycStartBtn}
               activeOpacity={0.85}
-              onPress={() => navigation.navigate("KycAadhaar")}
+              onPress={async () => {
+                const isGuest = !email;
+                if (isGuest) {
+                  // Guest users cannot do KYC — they need a real account
+                  Alert.alert(
+                    "Account Required",
+                    "KYC verification requires a registered account. Please create an account with your email and password.",
+                    [
+                      { text: "Do it Later", style: "cancel", onPress: () => setShowKyc(false) },
+                      { text: "Register Now", onPress: () => navigation.navigate("Register") },
+                    ]
+                  );
+                  return;
+                }
+                // Real email user — complete profile first, then KycAadhaar
+                // will be available in AppStack after RootNavigator switches
+                await completeProfile({
+                  name: name.trim() || "Guest",
+                  gender: gender || "other",
+                  email,
+                  phone,
+                });
+                // RootNavigator switches to AppStack automatically,
+                // but we still need to navigate to KycAadhaar.
+                // Use a short delay to let the stack mount first.
+                setTimeout(() => {
+                  navigation.navigate("KycAadhaar");
+                }, 300);
+              }}
             >
               <Text style={styles.kycStartBtnText}>Start KYC →</Text>
             </TouchableOpacity>
