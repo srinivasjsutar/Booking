@@ -1,131 +1,131 @@
-// src/context/AuthContext.js
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import * as SecureStore from 'expo-secure-store';
-import { loginUser, registerUser, getMe } from '../api/auth';
+// src/screens/KycSuccessScreen.js
+import React, { useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+} from "react-native";
+import { useAuth } from "../context/AuthContext";
 
-const AuthContext = createContext(null);
+const BRAND = "#C8963E";
 
-const TOKEN_KEY   = 'auth_token';
-const PROFILE_KEY = 'user_profile';
+export default function KycSuccessScreen({ navigation }) {
+  const { refreshKyc, isAuthenticated } = useAuth();
+  const scale = useRef(new Animated.Value(0)).current;
+  const fade = useRef(new Animated.Value(0)).current;
 
-// Helper: guest/local tokens are NOT real JWTs — never send them to the server
-const isLocalToken = (token) => typeof token === 'string' && token.startsWith('local_');
-
-export const AuthProvider = ({ children }) => {
-  const [user,    setUser]    = useState(null);
-  const [token,   setToken]   = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // ── On app start: restore session ────────────────────────────────────────────
   useEffect(() => {
-    const restoreSession = async () => {
-      try {
-        const stored = await SecureStore.getItemAsync(TOKEN_KEY);
-        if (stored) {
+    // ✅ FIX: refreshKyc updates user.kyc.status to 'verified' in context.
+    // RootNavigator watches `user` and will automatically switch to AppStack
+    // once kyc.status === 'verified', so no manual navigation.replace('Home')
+    // is needed (Home doesn't exist in KycStack anyway).
+    refreshKyc();
 
-          // ✅ FIX: Guest/local token — skip the API call entirely.
-          // Sending a "local_..." string to the server causes jwt.verify() to
-          // throw, which returns 401 "Token invalid or expired" on every launch.
-          if (isLocalToken(stored)) {
-            const cached = await SecureStore.getItemAsync(PROFILE_KEY);
-            if (cached) {
-              setToken(stored);
-              setUser(JSON.parse(cached));
-            } else {
-              // No cached profile either — clear and force re-login
-              await SecureStore.deleteItemAsync(TOKEN_KEY);
-            }
-
-          } else {
-            // Real JWT — validate with the server as before
-            try {
-              const data = await getMe(stored);
-              setToken(stored);
-              setUser(data.user);
-            } catch {
-              // Server unreachable or token truly expired — fall back to cache
-              const cached = await SecureStore.getItemAsync(PROFILE_KEY);
-              if (cached) {
-                setToken(stored);
-                setUser(JSON.parse(cached));
-              } else {
-                await SecureStore.deleteItemAsync(TOKEN_KEY);
-              }
-            }
-          }
-        }
-      } catch {
-        await SecureStore.deleteItemAsync(TOKEN_KEY);
-      } finally {
-        setLoading(false);
-      }
-    };
-    restoreSession();
+    Animated.sequence([
+      Animated.spring(scale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 60,
+        friction: 5,
+      }),
+      Animated.timing(fade, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
-  // ── Login (email + password) ──────────────────────────────────────────────────
-  const login = async (email, password) => {
-    const data = await loginUser(email, password);
-    await SecureStore.setItemAsync(TOKEN_KEY, data.token);
-    await SecureStore.setItemAsync(PROFILE_KEY, JSON.stringify(data.user));
-    setToken(data.token);
-    setUser(data.user);
-    return data;
+  // ✅ FIX: "Start Booking" button — if KYC refresh updated the context,
+  // RootNavigator will have already switched to AppStack automatically.
+  // If the user is inside AppStack (came from Profile screen), navigate manually.
+  const handleGoHome = () => {
+    try {
+      navigation.replace("Home");
+    } catch {
+      // Already handled by RootNavigator switching stacks — nothing to do
+    }
   };
-
-  // ── Register ──────────────────────────────────────────────────────────────────
-  const register = async (name, email, password) => {
-    const data = await registerUser(name, email, password);
-    await SecureStore.setItemAsync(TOKEN_KEY, data.token);
-    await SecureStore.setItemAsync(PROFILE_KEY, JSON.stringify(data.user));
-    setToken(data.token);
-    setUser(data.user);
-    return data;
-  };
-
-  // ── Complete profile after email OTP verify ───────────────────────────────────
-  const completeProfile = async (profileData) => {
-    const guestUser = {
-      id:         profileData.email || profileData.phone || 'guest',
-      name:       profileData.name,
-      email:      profileData.email || `${profileData.phone}@phone.com`,
-      gender:     profileData.gender,
-      isVerified: true,
-      isGuest:    true,   // ✅ flag so UI can prompt full login for protected actions
-    };
-
-    const guestToken = `local_${Date.now()}`;
-    await SecureStore.setItemAsync(TOKEN_KEY,   guestToken);
-    await SecureStore.setItemAsync(PROFILE_KEY, JSON.stringify(guestUser));
-
-    setToken(guestToken);
-    setUser(guestUser);
-  };
-
-  // ── Logout ────────────────────────────────────────────────────────────────────
-  const logout = async () => {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
-    await SecureStore.deleteItemAsync(PROFILE_KEY);
-    setToken(null);
-    setUser(null);
-  };
-
-  // ── Expose helper so screens can guard protected API calls ────────────────────
-  const isAuthenticated = token && !isLocalToken(token);
 
   return (
-    <AuthContext.Provider value={{
-      user, token, loading,
-      isAuthenticated,   // ✅ true only for real JWT users
-      login, register, completeProfile, logout,
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+    <View style={styles.container}>
+      <Animated.View style={[styles.circle, { transform: [{ scale }] }]}>
+        <Text style={styles.check}>✓</Text>
+      </Animated.View>
 
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
-  return ctx;
-};
+      <Animated.View style={{ opacity: fade, alignItems: "center" }}>
+        <Text style={styles.title}>KYC Complete!</Text>
+        <Text style={styles.sub}>
+          Your identity has been verified.{"\n"}You can now make bookings.
+        </Text>
+
+        <View style={styles.badges}>
+          <View style={styles.badge}>
+            <Text>🆔 Aadhaar ✓</Text>
+          </View>
+          <View style={styles.badge}>
+            <Text>💳 PAN ✓</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.btn} onPress={handleGoHome}>
+          <Text style={styles.btnTxt}>Start Booking →</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFBF5",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  },
+  circle: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: "#16A34A",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 32,
+    shadowColor: "#16A34A",
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
+  check: { fontSize: 54, color: "#fff", fontWeight: "700" },
+  title: {
+    fontSize: 30,
+    fontWeight: "800",
+    color: "#1C1917",
+    marginBottom: 12,
+  },
+  sub: {
+    fontSize: 15,
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  badges: { flexDirection: "row", gap: 12, marginBottom: 36 },
+  badge: {
+    backgroundColor: "#DCFCE7",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  btn: {
+    backgroundColor: BRAND,
+    borderRadius: 14,
+    paddingVertical: 15,
+    paddingHorizontal: 48,
+  },
+  btnTxt: { color: "#fff", fontSize: 17, fontWeight: "700" },
+});
